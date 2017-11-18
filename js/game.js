@@ -70,16 +70,26 @@ function handleControlsDown(event){
 	}
 }
 function control_Left(){
-	
+	switch(mode){
+		case 1: inGame_Left(); break;
+	}
 }
 function control_Right(){
-	
+	switch(mode){
+		case 1: inGame_Right(); break;
+	}
 }
 function control_Up(){
-	
+	switch(mode){
+		case 1: inGame_Up(); break;
+		default: menu_Up(); break;
+	}
 }
 function control_Down(){
-	
+	switch(mode){
+		case 1: inGame_Down(); break;
+		default: menu_Down(); break;
+	}
 }
 function control_select(){
 	switch(mode){
@@ -87,6 +97,25 @@ function control_select(){
 		case 1: /*pause*/ break;
 		case 2: startGame(); break;
 	}
+}
+
+function inGame_Left(){
+	player1.move(dir.left);
+}
+function inGame_Right(){
+	player1.move(dir.right);
+}
+function inGame_Up(){
+	player1.move(dir.up);
+}
+function inGame_Down(){
+	player1.move(dir.down);
+}
+function menu_Up(){
+	
+}
+function menu_Down(){
+	
 }
 
 function elapsedGameTime(){
@@ -103,6 +132,7 @@ function init(){
 	*/
 	loadGFX();
 	loadHighScore();
+	player1 = new player();
 	mode = 0;
 	hook_controls();
 	requestAnimationFrame(step); //starts the game loop
@@ -162,6 +192,7 @@ function updateGame(){
 	/* function updateGame()
 		handles update logic for the game when a round is in session
 	*/
+	player1.update();
 }
 function drawGame(ctx){
 	/* drawGame(ctx)
@@ -170,6 +201,8 @@ function drawGame(ctx){
 			ctx:canvasRenderingContext2D - context to render with
 	*/
 	ctx.drawImage(gfx.gameBG, 0, 0);
+	
+	player1.draw(ctx);
 }
 
 function menuUpdate(){
@@ -232,6 +265,7 @@ function startGame(){
 	mode = 1;
 	gameStart = timeElapsed;
 	score = 0;
+	player1 = new player();
 }
 function endGame(){
 	/* function endGame()
@@ -334,6 +368,28 @@ function angDist(source, target){
 	var dif = target - source;
 	dif = mod(dif + Math.PI, Math.PI * 2) - Math.PI;
 	return dif;
+}
+function drawImage(ctx, img, pos, ang = 0, sprite = null){
+	var width =  img.width;
+	var height = img.height;
+	if(sprite){
+		width = sprite.size.x;
+		height = sprite.size.y;
+	}
+	
+	ctx.translate(pos.x, pos.y);
+	ctx.rotate(ang);
+	
+	ctx.drawImage(
+		img,
+		sprite.left, sprite.top,
+		width, height,
+		width / -2, height / -2, //pos.x - width / 2, pos.y - height / 2,
+		width, height 
+		);
+		
+	ctx.rotate(-ang);
+	ctx.translate(-pos.x, -pos.y);
 }
 
 // initializes the game
