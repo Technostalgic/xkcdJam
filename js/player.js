@@ -6,6 +6,7 @@ class player{
 		this.moveSize = 40;
 		this.moveDir = dir.up;
 		this.pos = new vec2(canvas.width / 2, 440);
+		this.deathVel = new vec2();
 		this.alive = true;
 		this.setCollision();
 	}
@@ -28,6 +29,7 @@ class player{
 	
 	kill(push = new vec2()){
 		this.alive = false;
+		this.deathVel = push;
 	}
 	
 	update(){
@@ -51,7 +53,10 @@ class player{
 		this.alignCollision();
 	}
 	deathUpdate(){
-		
+		this.pos = this.pos.plus(this.deathVel);
+		this.deathVel = this.deathVel.multiply(0.96);
+		if(this.deathVel.distance() < 3)
+			this.deathVel = new vec2();
 	}
 	
 	draw(ctx){

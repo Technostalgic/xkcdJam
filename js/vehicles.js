@@ -157,10 +157,18 @@ class vehicle{
 			}
 		}
 	}
-	checkPlayerCollision(){}
+	checkPlayerCollision(){
+		if(!player1.alive) return;
+		if(this.col.polygonIntersections(player1.col).length > 0)
+			this.hitPlayer();
+	}
 	vehicleCollide(veh){
 		this.kill();
 		veh.kill();
+	}
+	hitPlayer(){
+		this.kill();
+		player1.kill(this.vel);
 	}
 	
 	kill(push = new vec2()){
@@ -175,6 +183,7 @@ class vehicle{
 	deathUpdate(){
 		this.vel = this.vel.multiply(0.8);
 		this.pos = this.pos.plus(this.vel);
+		this.alignCollision();
 		this.handleCollisions();
 	}
 	
