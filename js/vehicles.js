@@ -17,6 +17,9 @@ class vehicle{
 		this.alive = true;
 		this.id = vehicle.getNextUID();
 		this.setCollision();
+		this.skidL = null;
+		this.skidR = null;
+		this.skidding = false;
 	}
 	get graphic(){
 		return null; // meant for override
@@ -69,6 +72,7 @@ class vehicle{
 	}
 	brake(){
 		this.vel = this.vel.multiply(0.785);
+		this.doSkidEffect();
 	}
 	swerve(direction){
 		
@@ -103,8 +107,41 @@ class vehicle{
 		//add the deacceleration back to the velocity in the direction that the vehicle is now moving
 		this.vel = this.vel.plus(vec2.fromAng(this.moveDir, dAcc));
 		
-		if(Math.abs(sdif) * spd > 1)
-			;// make skid marks
+		var sFact = Math.abs(sdif) * spd;
+		if(sFact > 1)
+			this.doSkidEffect(Math.min((sFact - 1) / 4, 1));// make skid marks
+	}
+	
+	doSkidEffect(lAlpha = 1, rAlpha = lAlpha){
+		if(!this.skidL || !this.skidR)
+			this.openSkidMarks();
+		this.skidL.addPoint(this.getSkidLPos(), lAlpha);
+		this.skidR.addPoint(this.getSkidRPos(), rAlpha);
+		this.skidding = true;
+	}
+	getSkidLPos(){
+		return this.pos;
+	}
+	getSkidRPos(){
+		return this.pos;
+	}
+	openSkidMarks(){
+		this.skidL = new skidMark();
+		this.skidR = new skidMark();
+		this.skidL.add();
+		this.skidR.add();
+	}
+	closeSkidMarks(){
+		if(this.skidL){
+			this.skidL.draw(effectContext);
+			this.skidL.remove();
+			this.skidL = null;
+		}
+		if(this.skidR){
+			this.skidR.draw(effectContext);
+			this.skidR.remove();
+			this.skidR = null;
+		}
 	}
 	
 	handleCollisions(){
@@ -131,7 +168,8 @@ class vehicle{
 		this.alive = false;
 	}
 	remove(){
-		vehicles.splice(vehicles.indexOf(this), 1)
+		vehicles.splice(vehicles.indexOf(this), 1);
+		this.closeSkidMarks();
 	}
 
 	deathUpdate(){
@@ -141,10 +179,15 @@ class vehicle{
 	}
 	
 	update(){
+		if(!this.skidding)
+			this.closeSkidMarks();
+		this.skidding = false;
+		
 		if(!this.alive){
 			this.deathUpdate();
 			return;
 		}
+		
 		this.handleSteeringPhysics();
 		this.pos = this.pos.plus(this.vel);
 		this.alignCollision();
@@ -190,6 +233,13 @@ class car extends vehicle{
 		this.col = new polygon();
 		this.col.setVerts(verts);
 		this.alignCollision();
+	}
+	
+	getSkidLPos(){
+		return this.col.getAbsVerts()[0];
+	}
+	getSkidRPos(){
+		return this.col.getAbsVerts()[3];
 	}
 	
 	update(){

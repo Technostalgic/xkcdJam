@@ -21,6 +21,11 @@ window.addEventListener("keydown", function(e) {
 
 var canvas = document.getElementById("canvas");
 var context = canvas.getContext("2d");
+var effectCanvas = document.createElement("canvas");
+var effectContext = effectCanvas.getContext("2d");
+	effectCanvas.width = canvas.width;
+	effectCanvas.height = canvas.height;
+	
 var debugDraw = false;
 var gameStalled = false;
 
@@ -43,6 +48,7 @@ var score = 0;
 var hiscore = 0;
 var player1;
 var vehicles = [];
+var effects = [];
 var controls = [37, 39, 38, 40, 88, 67, 32]; //the control scheme in keyCodes
 var gfx = {};
 
@@ -139,6 +145,7 @@ function init(){
 	loadHighScore();
 	player1 = new player();
 	vehicles = [];
+	effects = [];
 	mode = 0;
 	hook_controls();
 	requestAnimationFrame(step); //starts the game loop
@@ -225,6 +232,16 @@ function drawVehicles(ctx){
 		vehicles[i].draw(ctx);
 }
 
+function updateEffects(){
+	for(var i = effects.length - 1; i >= 0; i--)
+		effects[i].update();
+}
+function drawEffects(ctx){
+	ctx.drawImage(effectCanvas, 0, 0);
+	for(var i = effects.length - 1; i >= 0; i--)
+		effects[i].draw(ctx);
+}
+
 function updateGame(){
 	/* function updateGame()
 		handles update logic for the game when a round is in session
@@ -233,6 +250,7 @@ function updateGame(){
 	
 	updateVehicles();
 	spawnVehicles();
+	updateEffects();
 }
 function drawGame(ctx){
 	/* drawGame(ctx)
@@ -242,6 +260,7 @@ function drawGame(ctx){
 	*/
 	ctx.drawImage(gfx.gameBG, 0, 0);
 	
+	drawEffects(ctx);
 	player1.draw(ctx);
 	drawVehicles(ctx);
 }
