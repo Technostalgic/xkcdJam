@@ -1,12 +1,11 @@
 class player{
 	constructor(){
-		this.sprite = new box(0, 0, 30, 30);
+		this.sprite = new box(0, 0, player.graphic.width / 2, player.graphic.height);
 		this.animSeq = 0;
 		this.animTime = 10;
 		this.moveSize = 40;
 		this.moveDir = dir.up;
 		this.pos = new vec2(canvas.width / 2, 442);
-		this.oPos = this.pos;
 		this.alive = true;
 	}
 	
@@ -31,9 +30,14 @@ class player{
 			var dPos = vec2.fromAng(this.moveDir, this.moveSize / this.animTime)
 			this.pos = this.pos.plus(dPos);
 			
+			this.sprite.position.x = player.graphic.width / 2;
+			
 			this.animSeq -= 1;
 			if(this.animSeq < 0)
 				this.animSeq = 0;
+		}
+		else{
+			this.sprite.position.x = 0;
 		}
 	}
 	deathUpdate(){

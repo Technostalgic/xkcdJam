@@ -34,11 +34,13 @@ var dir = { //direction enumerator
 	right: 0,
 	left: Math.PI
 };
+var lanes = [200, 240, 280, 320, 360, 400];
 
 var saveKey = "technostalgic_xkcd_highschore"; //used to store highscore data in the browser's local data cache
 var score = 0;
 var hiscore = 0;
 var player1;
+var vehicles = [];
 var controls = [37, 39, 38, 40, 88, 67, 32]; //the control scheme in keyCodes
 var gfx = {};
 
@@ -59,7 +61,7 @@ function handleControlsDown(event){
 	/* function handleControlsDown(event)
 		updates the game data to inform that a control is being triggered
 	*/
-	console.log(event.key + ":" + event.keyCode); //used for debugging
+	//console.log(event.key + ":" + event.keyCode); //used for debugging
 	
 	switch(event.keyCode){
 		case controls[0]: control_Left(); break;
@@ -133,6 +135,7 @@ function init(){
 	loadGFX();
 	loadHighScore();
 	player1 = new player();
+	vehicles = [];
 	mode = 0;
 	hook_controls();
 	requestAnimationFrame(step); //starts the game loop
@@ -188,11 +191,32 @@ function loadGFX(){
 	gfx.gameBG.src = "./gfx/gameBG.gif";
 }
 
+function spawnVehicles(){
+	var maxVehicles = 15;
+	if(vehicles.length < maxVehicles)
+		spawnVehicle();
+}
+function spawnVehicle(){
+	var veh = new car();
+	vehicles.push(veh);
+}
+function updateVehicles(){
+	for(var i = vehicles.length - 1; i >= 0; i--)
+		vehicles[i].update();
+}
+function drawVehicles(ctx){
+	for(var i = vehicles.length - 1; i >= 0; i--)
+		vehicles[i].draw(ctx);
+}
+
 function updateGame(){
 	/* function updateGame()
 		handles update logic for the game when a round is in session
 	*/
 	player1.update();
+	
+	updateVehicles();
+	spawnVehicles();
 }
 function drawGame(ctx){
 	/* drawGame(ctx)
@@ -203,6 +227,7 @@ function drawGame(ctx){
 	ctx.drawImage(gfx.gameBG, 0, 0);
 	
 	player1.draw(ctx);
+	drawVehicles(ctx);
 }
 
 function menuUpdate(){
@@ -227,11 +252,11 @@ function drawStartScreen(ctx){
 	ctx.font = "36px xkcdFont";
 	ctx.fillText('" Frogger "', canvas.width / 2, 100);
 	
-	ctx.fillStyle = "#AAA";
-	ctx.font = "10px xkcdFont";
+	ctx.fillStyle = "#888";
+	ctx.font = "10px xkcdScript";
 	ctx.fillText("( slightly more realistic )", canvas.width / 2, 120);
-	ctx.fillStyle = "#CCC";
-	ctx.font = "8px xkcdFont";
+	ctx.fillStyle = "#AAA";
+	ctx.font = "8px xkcdScript";
 	ctx.fillText("( only slightly though )", canvas.width / 2, 130);
 	
 	ctx.drawImage(gfx.strtscr_deskGuy, 
@@ -241,12 +266,12 @@ function drawStartScreen(ctx){
 		canvas.width * (2 / 3) - gfx.strtscr_controlKeys.width / 2, 
 		canvas.height / 2 - gfx.strtscr_controlKeys.height / 2);
 	ctx.fillStyle = "#000";
-	ctx.font = "16px xkcdFont";
+	ctx.font = "16px xkcdScript";
 	ctx.fillText("Movement", canvas.width / 2 + 25, canvas.height / 2 + 100);
 	
 	var blinkInterval = 1200;
 	ctx.fillStyle = timeElapsed % blinkInterval < blinkInterval / 2 ? "#000" : "#EEE";
-	ctx.font = "28px xkcdFont";
+	ctx.font = "28px xkcdScript";
 	ctx.fillText("Press 'spacebar' to start", canvas.width / 2, canvas.height - 50);
 }
 function drawEndScreen(ctx){
