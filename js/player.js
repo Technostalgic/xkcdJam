@@ -5,8 +5,17 @@ class player{
 		this.animTime = 10;
 		this.moveSize = 40;
 		this.moveDir = dir.up;
-		this.pos = new vec2(canvas.width / 2, 442);
+		this.pos = new vec2(canvas.width / 2, 440);
 		this.alive = true;
+		this.setCollision();
+	}
+	setCollision(){
+		this.col = polygon.Circle(12, 8);
+		this.alignCollision();
+	}
+	alignCollision(){
+		this.col.setPosition(this.pos);
+		this.col.setRotation(this.moveDir);
 	}
 	
 	move(direction = dir.up){
@@ -39,13 +48,19 @@ class player{
 		else{
 			this.sprite.position.x = 0;
 		}
+		this.alignCollision();
 	}
 	deathUpdate(){
 		
 	}
 	
 	draw(ctx){
+		ctx.fillStyle = "#000";
+		ctx.fillRect(0, 0, 0, 0);
 		drawImage(ctx, player.graphic, this.pos, this.moveDir, this.sprite);
+	}
+	draw_debug(ctx = context){
+		this.col.drawOutline(ctx, "#FFF", 2)
 	}
 	
 	static loadGraphics(){

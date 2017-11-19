@@ -21,6 +21,8 @@ window.addEventListener("keydown", function(e) {
 
 var canvas = document.getElementById("canvas");
 var context = canvas.getContext("2d");
+var debugDraw = false;
+var gameStalled = false;
 
 var timeElapsed = 0; //represents the total time elapsed since the page loaded
 var gameStart = 0; //represents the start of the current round in milliseconds elapsed since page load
@@ -69,6 +71,7 @@ function handleControlsDown(event){
 		case controls[2]: control_Up(); break;
 		case controls[3]: control_Down(); break;
 		case 32: control_select(); break; //spacebar
+		case 220: gameStalled = !gameStalled; break; //fw slash
 	}
 }
 function control_Left(){
@@ -144,6 +147,12 @@ function step(){
 	/* function step()
 		main logic loop entry point
 	*/
+	if(gameStalled){
+		requestAnimationFrame(step); // sets the next step to be called recursively
+		dt = Math.max(0, performance.now() - timeElapsed); //measures the time between the last step and this step
+		timeElapsed = performance.now();
+		return;
+	}
 	
 	//updates the game loop while trying to match real 
 	//world time as close as possibles
@@ -179,6 +188,13 @@ function draw(ctx){
 		return;
 	}
 	drawGame(ctx);
+	
+	if(debugDraw) draw_debug();
+}
+function draw_debug(){
+	for(var i = vehicles.length - 1; i >= 0; i--)
+		vehicles[i].draw_debug();
+	player1.draw_debug();
 }
 
 function loadGFX(){
@@ -192,7 +208,7 @@ function loadGFX(){
 }
 
 function spawnVehicles(){
-	var maxVehicles = 15;
+	var maxVehicles = 3;
 	if(vehicles.length < maxVehicles)
 		spawnVehicle();
 }
@@ -407,7 +423,7 @@ function drawImage(ctx, img, pos, ang = 0, sprite = null){
 	
 	ctx.drawImage(
 		img,
-		sprite.left, sprite.top,
+		sprite.left(), sprite.top(),
 		width, height,
 		width / -2, height / -2, //pos.x - width / 2, pos.y - height / 2,
 		width, height 
