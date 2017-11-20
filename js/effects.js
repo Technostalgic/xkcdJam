@@ -58,7 +58,7 @@ class skidMark extends effect{
 class bloodSplatter extends effect{
 	constructor(pos, type){
 		super();
-		var w = gfx.bloodEffects.width / 4;
+		var w = gfx.bloodEffects.width / 2;
 		this.sprite = new box(
 			w * type, 0, 
 			w, gfx.bloodEffects.height);
