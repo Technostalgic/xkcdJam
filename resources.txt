@@ -1,1 +1,2 @@
-font - https://xkcd.com/1350/xkcd-Regular.otf
+type font - https://xkcd.com/1350/xkcd-Regular.otf
+script font - https://raw.githubusercontent.com/ipython/xkcd-font/master/xkcd-script/font/xkcd-script.ttf

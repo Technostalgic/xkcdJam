@@ -45,6 +45,8 @@ var lanes = [200, 240, 280, 320, 360, 400];
 var activeCars = 0;
 
 var saveKey = "technostalgic_xkcd_highschore"; //used to store highscore data in the browser's local data cache
+var deathtoll = 0;
+var won = false;
 var score = 0;
 var hiscore = 0;
 var player1;
@@ -106,7 +108,7 @@ function control_Down(){
 function control_select(){
 	switch(mode){
 		case 0: startGame(); break;
-		case 1: /*pause*/ break;
+		case 1: ingame_select(); break;
 		case 2: startGame(); break;
 	}
 }
@@ -122,6 +124,10 @@ function inGame_Up(){
 }
 function inGame_Down(){
 	player1.move(dir.down);
+}
+function ingame_select(){
+	if(player1.murderAnimSeq > 0 || won)
+		startGame();
 }
 function menu_Up(){
 	
@@ -211,17 +217,35 @@ function loadGFX(){
 	gfx.strtscr_controlKeys = new Image();
 	gfx.strtscr_controlKeys.src = "./gfx/controlKeys.gif";
 	
+	gfx.endscr_loseMessage = new Image();
+	gfx.endscr_loseMessage.src = "./gfx/loseMessage.gif";
+	gfx.endscr_emptyFrame = new Image();
+	gfx.endscr_emptyFrame.src = "./gfx/emptyFrame.gif";
+	
 	gfx.gameBG = new Image();
 	gfx.gameBG.src = "./gfx/gameBG.gif";
+	gfx.frogTextLine = new Image();
+	gfx.frogTextLine.src = "./gfx/frogTextLine.png";
+	gfx.bloodEffects = new Image();
+	gfx.bloodEffects.src = "./gfx/bloodEffects.png";
 }
 
+function initSpawnVehicles(){
+	var maxVehicles = 10;
+	for(var i = maxVehicles; i >= 0; i--)
+		spawnVehicle(true);
+}
 function spawnVehicles(){
 	var maxVehicles = 10;
 	if(activeCars < maxVehicles)
 		spawnVehicle();
 }
-function spawnVehicle(){
+function spawnVehicle(anyx = false){
 	var veh = new car();
+	if(anyx){
+		veh.pos.x = rand(0, canvas.width);
+		veh.alignCollision();
+	}
 	
 	if(!veh.isOverlappingVehicle() && veh.getPotentialCollisions() <= 0){
 		activeCars += 1;
@@ -265,9 +289,26 @@ function drawGame(ctx){
 	*/
 	ctx.drawImage(gfx.gameBG, 0, 0);
 	
+	if(player1.alive && deathtoll <= 0){
+		ctx.textAlign = "center"
+		ctx.fillStyle = "#FFF";
+		
+		if(player1.pos.y < lanes[0] - 20 || won){
+			won = true;
+			ctx.font = "32px xkcdScript";
+			ctx.fillText("Success!", canvas.width / 2, canvas.height - 40);
+		}
+		else{
+			ctx.font = "24px xkcdScript";
+			ctx.fillText("goal: cross the road without getting myself killed", canvas.width / 2, canvas.height - 60);
+			ctx.fillText("( or killing anyone else )", canvas.width / 2, canvas.height - 35);
+		}
+	}
+	
 	drawEffects(ctx);
 	player1.draw(ctx);
 	drawVehicles(ctx);
+	
 }
 
 function menuUpdate(){
@@ -320,6 +361,23 @@ function drawEndScreen(ctx){
 		params:
 			ctx:canvasRenderingContext2D - context to render with
 	*/
+	drawImage(ctx, gfx.endscr_loseMessage, 
+		new vec2(canvas.width * 0.75, canvas.height / 2));
+	drawImage(ctx, effectCanvas,
+		new vec2(canvas.width * 0.25, canvas.height / 2))
+	drawImage(ctx, gfx.endscr_emptyFrame,
+		new vec2(canvas.width * 0.25, canvas.height / 2))
+		
+	ctx.textAlign = "center";
+	
+	ctx.fillStyle = "#A00";
+	ctx.font = "38px xkcdScript";
+	ctx.fillText("YOU DIED", canvas.width / 2, 100);
+	
+	var blinkInterval = 1200;
+	ctx.fillStyle = timeElapsed % blinkInterval < blinkInterval / 2 ? "#000" : "#EEE";
+	ctx.font = "28px xkcdScript";
+	ctx.fillText("press 'spacebar' to try again", canvas.width / 2, canvas.height - 50);
 }
 
 function startGame(){
@@ -328,18 +386,42 @@ function startGame(){
 		variables
 	*/
 	mode = 1;
+	won = false;
+	effectCanvas.width = canvas.width;
+	effectCanvas.height = canvas.height;
 	gameStart = timeElapsed;
+	deathtoll = 0;
 	score = 0;
 	player1 = new player();
 	activeCars = 0;
 	vehicles = [];
 	effects = [];
 	effectContext.clearRect(0, 0, effectCanvas.width, effectCanvas.height);
+	
+	initSpawnVehicles();
 }
 function endGame(){
 	/* function endGame()
 		ends the current round
 	*/
+	if(mode == 2) return;
+	
+	effectCanvas.width = gfx.endscr_emptyFrame.width;
+	effectCanvas.height = gfx.endscr_emptyFrame.height;
+	effectContext.clearRect(0, 0, effectCanvas.width, effectCanvas.height);
+	
+	var tpos = player1.pos.inverted().plus(new vec2(
+		effectCanvas.width / 2, effectCanvas.height / 2));
+	
+	if(tpos.x > 0) tpos.x = 0;
+	if(tpos.y > 0) tpos.y = 0;
+	if(tpos.x < -canvas.width + effectCanvas.width) 
+		tpos.x = -canvas.width + effectCanvas.width;
+	if(tpos.y < -canvas.height + effectCanvas.height) 
+		tpos.y = -canvas.height + effectCanvas.height;
+	
+	effectContext.drawImage(canvas, tpos.x, tpos.y);
+	
 	mode = 2;
 	saveHighScore();
 }
@@ -441,9 +523,11 @@ function angDist(source, target){
 function drawImage(ctx, img, pos, ang = 0, sprite = null){
 	var width =  img.width;
 	var height = img.height;
+	var lt = new vec2();
 	if(sprite){
 		width = sprite.size.x;
 		height = sprite.size.y;
+		lt = sprite.position.clone();
 	}
 	
 	ctx.translate(pos.x, pos.y);
@@ -451,7 +535,7 @@ function drawImage(ctx, img, pos, ang = 0, sprite = null){
 	
 	ctx.drawImage(
 		img,
-		sprite.left(), sprite.top(),
+		lt.x, lt.y,
 		width, height,
 		width / -2, height / -2, //pos.x - width / 2, pos.y - height / 2,
 		width, height 

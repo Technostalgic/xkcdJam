@@ -278,8 +278,10 @@ class vehicle{
 		var rot = push.distance() / 100;
 		this.deathRotVel = rand(-rot, rot)
 		
-		if(this.alive)
+		if(this.alive){
 			activeCars -= 1;
+			deathtoll += 1;
+		}
 		this.alive = false;
 	}
 	remove(){

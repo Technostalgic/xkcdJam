@@ -52,4 +52,21 @@ class skidMark extends effect{
 			ctx.stroke();
 		}
 	}
+
+}
+
+class bloodSplatter extends effect{
+	constructor(pos, type){
+		super();
+		var w = gfx.bloodEffects.width / 4;
+		this.sprite = new box(
+			w * type, 0, 
+			w, gfx.bloodEffects.height);
+		this.pos = pos.clone();
+	}
+	
+	draw(ctx, ang = rand(-Math.PI, Math.PI)){
+		drawImage(ctx, gfx.bloodEffects,
+			this.pos, ang, this.sprite);
+	}
 }
