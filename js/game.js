@@ -42,6 +42,7 @@ var dir = { //direction enumerator
 	left: Math.PI
 };
 var lanes = [200, 240, 280, 320, 360, 400];
+var activeCars = 0;
 
 var saveKey = "technostalgic_xkcd_highschore"; //used to store highscore data in the browser's local data cache
 var score = 0;
@@ -215,13 +216,17 @@ function loadGFX(){
 }
 
 function spawnVehicles(){
-	var maxVehicles = 3;
-	if(vehicles.length < maxVehicles)
+	var maxVehicles = 10;
+	if(activeCars < maxVehicles)
 		spawnVehicle();
 }
 function spawnVehicle(){
 	var veh = new car();
-	vehicles.push(veh);
+	
+	if(!veh.isOverlappingVehicle() && veh.getPotentialCollisions() <= 0){
+		activeCars += 1;
+		vehicles.push(veh);
+	}
 }
 function updateVehicles(){
 	for(var i = vehicles.length - 1; i >= 0; i--)
@@ -326,6 +331,10 @@ function startGame(){
 	gameStart = timeElapsed;
 	score = 0;
 	player1 = new player();
+	activeCars = 0;
+	vehicles = [];
+	effects = [];
+	effectContext.clearRect(0, 0, effectCanvas.width, effectCanvas.height);
 }
 function endGame(){
 	/* function endGame()

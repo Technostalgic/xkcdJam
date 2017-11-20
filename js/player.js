@@ -7,6 +7,7 @@ class player{
 		this.moveDir = dir.up;
 		this.pos = new vec2(canvas.width / 2, 440);
 		this.deathVel = new vec2();
+		this.deathRotVel = 0;
 		this.alive = true;
 		this.setCollision();
 	}
@@ -23,6 +24,12 @@ class player{
 		if(!this.alive) return;
 		if(this.animSeq > 0) return;
 		
+		var coltest = new ray(this.pos.clone(), direction, this.moveSize);
+		for(var i = vehicles.length - 1; i >= 0; i--)
+			if(coltest.polygonCollision(vehicles[i].col).length > 0)
+				if(vehicles[i].vel.distance() <= 1)
+					return;
+		
 		this.animSeq = this.animTime;
 		this.moveDir = direction;
 	}
@@ -30,6 +37,9 @@ class player{
 	kill(push = new vec2()){
 		this.alive = false;
 		this.deathVel = push;
+		
+		var spin = push.distance() / 100;
+		this.deathRotVel = rand(-spin, spin);
 	}
 	
 	update(){
@@ -54,9 +64,12 @@ class player{
 	}
 	deathUpdate(){
 		this.pos = this.pos.plus(this.deathVel);
+		this.moveDir += this.deathRotVel;
 		this.deathVel = this.deathVel.multiply(0.96);
-		if(this.deathVel.distance() < 3)
+		if(this.deathVel.distance() < 3){
 			this.deathVel = new vec2();
+			this.deathRotVel = 0;
+		}
 	}
 	
 	draw(ctx){

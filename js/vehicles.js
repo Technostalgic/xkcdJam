@@ -11,7 +11,9 @@ class vehicle{
 				speed, 
 			0 );
 		this.moveDir = dir.left;
+		this.deathRotVel = 0;
 		this.steer = 0;
+		this.swerving = false;
 		this.speed = speed;
 		this.braking = false;
 		this.alive = true;
@@ -48,14 +50,93 @@ class vehicle{
 		else this.accelerate();
 	}
 	doCollisionPrevention(){
-		this.steer *= 0.9;
-		if(rand() > 0.9)
-			this.steer += rand(-1, 1);
+		if(this.steer <= 0.2)
+			this.swerving = false;
+		this.steer *= 0.95;
+		
+		//if(rand() > 0.9)
+		//	this.steer += rand(-1, 1) / 5;
 		
 		var pcols = this.getPotentialCollisions();
+		var brakeAhead = false;
+		for(var i = pcols.length - 1; i >= 0; i --){
+			var dist = this.pos.distance(pcols[i].pos);
+			if(dist <= 70)
+				brakeAhead = true;
+			
+			if(pcols[i] instanceof player){
+				var testlength = 30 * this.vel.distance();
+				var maxswerve = 1;
+				var centr = (lanes[2] + lanes[3]) / 2;
+				var sdir = Math.sign(this.pos.y - centr);
+				
+				var swerv = (
+					Math.max(
+					(testlength - dist) / testlength, 
+					0) * maxswerve * sdir);
+				this.swerve(swerv)
+				this.swerving = true;
+				continue;
+			}
+			if(this.swerving) continue;
+			
+			var testlength = 30 * this.vel.distance();
+			var maxswerve = 2;
+			var centr = pcols[i].pos.y;
+			var sdir = Math.sign(centr - this.pos.y);
+			
+			var swerv = (
+				Math.max(
+				(testlength - dist) / testlength, 
+				0) * sdir);
+			
+			if(pcols[i].speed < this.speed)
+				this.speed = pcols[i].speed;
+			if(Math.abs(swerv) >= 0.2){
+				this.swerve(swerv * maxswerve);
+				this.swerving = true;
+			}
+		}
+		
+		if(brakeAhead){
+			this.braking = true;
+		}
+		else this.braking = false;
+		
+		if(rand() > 0.95){
+			if(this.speed <= 1){
+				if(pcols <= 0){
+					this.swerve();
+					this.speed = rand(5, 10);
+				}
+			}
+		}
 	}
 	getPotentialCollisions(){
 		var m = [];
+		
+		var testLength = this.vel.distance() * 30;
+		var testPoly = new polygon();
+		var verts = [
+			new vec2(0, -13),
+			new vec2(0, 13),
+			new vec2(testLength, 14),
+			new vec2(testLength, -14)
+		];
+		testPoly.setVerts(verts);
+		testPoly.setPosition(this.pos.clone());
+		testPoly.setRotation(this.moveDir);
+		if(debugDraw)
+			testPoly.drawOutline(context, "#FF0", 2);
+		
+		for(var i = vehicles.length - 1; i >= 0; i--){
+			if(this.id == vehicles[i].id) continue;
+			if(testPoly.polygonIntersections(vehicles[i].col).length > 0)
+				m.push(vehicles[i]);
+		}
+		
+		if(testPoly.polygonIntersections(player1.col).length > 0)
+			m.push(player1);
 		
 		return m;
 	}
@@ -66,16 +147,16 @@ class vehicle{
 		//ensure the vehicle doesn't pass its predetermined speed
 		var fSpd = this.vel.plus(dVel).distance();
 		if(fSpd > this.speed)
-			dVel = vec2.fromAng(this.moveDir, this.speed - fSpd);
+			dVel = vec2.fromAng(this.moveDir, Math.max(this.speed - fSpd, -0.1));
 		
 		this.vel = this.vel.plus(dVel);
 	}
 	brake(){
-		this.vel = this.vel.multiply(0.785);
-		this.doSkidEffect();
+		this.vel = this.vel.multiply(0.9);
+		this.doSkidEffect(0.5);
 	}
-	swerve(direction){
-		
+	swerve(direction = rand(-1, 1)){
+		this.steer += direction;
 	}
 	handleSteeringPhysics(){
 		var spd = this.vel.distance();
@@ -148,6 +229,16 @@ class vehicle{
 		this.checkVehicleCollisions();
 		this.checkPlayerCollision();
 	}
+	isOverlappingVehicle(){
+		for(var i = vehicles.length - 1; i >= 0; i--){
+			if(this.id === vehicles[i].id)
+				continue;
+			if(this.col.polygonIntersections(vehicles[i].col).length > 0){
+				return true;
+			}
+		}
+		return false;
+	}
 	checkVehicleCollisions(){
 		for(var i = vehicles.length - 1; i >= 0; i--){
 			if(this.id === vehicles[i].id)
@@ -163,28 +254,57 @@ class vehicle{
 			this.hitPlayer();
 	}
 	vehicleCollide(veh){
-		this.kill();
-		veh.kill();
+		var force = veh.vel.minus(this.vel).distance();
+		var origin = this.pos.plus(veh.pos).multiply(0.5);
+		var tpush = origin.minus(veh.pos).normalized(-force);
+		var vpush = origin.minus(this.pos).normalized(-force);
+		
+		veh.kill(tpush);
+		this.kill(vpush);
 	}
 	hitPlayer(){
-		this.kill();
+		if(this.vel.distance() < 1)
+			return;
 		player1.kill(this.vel);
+		this.kill();
 	}
 	
 	kill(push = new vec2()){
-		this.vel = this.vel.plus(push);
+		this.vel = this.vel.multiply(0.5);
+		if(push.distance() > 0.01)
+			this.vel = this.vel.plus(push);
+		this.speed = 0;
+		
+		var rot = push.distance() / 100;
+		this.deathRotVel = rand(-rot, rot)
+		
+		if(this.alive)
+			activeCars -= 1;
 		this.alive = false;
 	}
 	remove(){
 		vehicles.splice(vehicles.indexOf(this), 1);
 		this.closeSkidMarks();
+		if(this.alive)
+			activeCars -= 1;
 	}
 
 	deathUpdate(){
+		
 		this.vel = this.vel.multiply(0.8);
+		this.deathRotVel *= 0.9;
 		this.pos = this.pos.plus(this.vel);
+		this.moveDir += this.deathRotVel;
 		this.alignCollision();
 		this.handleCollisions();
+		this.removeCheck();
+	}
+	removeCheck(){
+		if((this.pos.x > canvas.width + this.graphic.width) ||
+			(this.pos.x < 0 - this.graphic.width) ||
+			(this.pos.y < 0 - this.graphic.width) ||
+			(this.pos.y > canvas.height + this.graphic.width))
+			this.remove();
 	}
 	
 	update(){
@@ -202,15 +322,14 @@ class vehicle{
 		this.alignCollision();
 		this.handleCollisions();
 		
-		if((this.pos.x > canvas.width + this.graphic.width) ||
-			(this.pos.x < 0 - this.graphic.width))
-			this.remove();
+		this.removeCheck();
 		
 		this.drive();
 	}
 	draw(ctx){}
 	draw_debug(ctx = context){
 		this.col.drawOutline(ctx, "#FFF", 2);
+		this.getPotentialCollisions();
 	}
 }
 
